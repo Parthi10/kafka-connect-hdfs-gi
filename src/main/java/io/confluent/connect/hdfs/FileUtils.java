@@ -29,7 +29,6 @@ import java.util.ArrayList;
 import java.util.UUID;
 import java.util.regex.Matcher;
 
-import io.confluent.connect.hdfs.filter.CommittedFileFilter;
 import io.confluent.connect.hdfs.storage.Storage;
 
 public class FileUtils {
@@ -119,7 +118,7 @@ public class FileUtils {
   }
 
   public static FileStatus fileStatusWithMaxOffset(Storage storage, Path path,
-                                                   CommittedFileFilter filter) throws IOException {
+                                                   PathFilter filter) throws IOException {
     if (!storage.exists(path.toString())) {
       return null;
     }

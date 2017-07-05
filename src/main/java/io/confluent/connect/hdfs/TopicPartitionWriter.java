@@ -14,6 +14,8 @@
 
 package io.confluent.connect.hdfs;
 
+import io.confluent.connect.hdfs.file.FileInfo;
+import io.confluent.connect.hdfs.file.FileService;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
@@ -45,8 +47,6 @@ import java.util.concurrent.Future;
 
 import io.confluent.connect.avro.AvroData;
 import io.confluent.connect.hdfs.errors.HiveMetaStoreException;
-import io.confluent.connect.hdfs.filter.CommittedFileFilter;
-import io.confluent.connect.hdfs.filter.TopicPartitionCommittedFileFilter;
 import io.confluent.connect.hdfs.hive.HiveMetaStore;
 import io.confluent.connect.hdfs.hive.HiveUtil;
 import io.confluent.connect.hdfs.partitioner.Partitioner;
@@ -60,6 +60,7 @@ public class TopicPartitionWriter {
   private WAL wal;
   private Map<String, String> tempFiles;
   private Map<String, RecordWriter<SinkRecord>> writers;
+  private FileService<SinkRecord> fileService;
   private TopicPartition tp;
   private Partitioner partitioner;
   private String url;
@@ -106,10 +107,11 @@ public class TopicPartitionWriter {
       Storage storage,
       RecordWriterProvider writerProvider,
       Partitioner partitioner,
+      FileService<SinkRecord> fileService,
       HdfsSinkConnectorConfig connectorConfig,
       SinkTaskContext context,
       AvroData avroData) {
-    this(tp, storage, writerProvider, partitioner, connectorConfig, context, avroData, null, null, null, null, null);
+    this(tp, storage, writerProvider, partitioner, fileService, connectorConfig, context, avroData, null, null, null, null, null);
   }
 
   public TopicPartitionWriter(
@@ -117,6 +119,7 @@ public class TopicPartitionWriter {
       Storage storage,
       RecordWriterProvider writerProvider,
       Partitioner partitioner,
+      FileService<SinkRecord> fileService,
       HdfsSinkConnectorConfig connectorConfig,
       SinkTaskContext context,
       AvroData avroData,
@@ -132,6 +135,7 @@ public class TopicPartitionWriter {
     this.storage = storage;
     this.writerProvider = writerProvider;
     this.partitioner = partitioner;
+    this.fileService = fileService;
     this.url = storage.url();
     this.conf = storage.conf();
     this.schemaFileReader = schemaFileReader;
@@ -268,9 +272,13 @@ public class TopicPartitionWriter {
           case WRITE_PARTITION_PAUSED:
             if (currentSchema == null) {
               if (compatibility != Compatibility.NONE && offset != -1) {
-                String topicDir = FileUtils.topicDirectory(url, topicsDir, tp.topic());
-                CommittedFileFilter filter = new TopicPartitionCommittedFileFilter(tp);
-                FileStatus fileStatusWithMaxOffset = FileUtils.fileStatusWithMaxOffset(storage, new Path(topicDir), filter);
+                String topicDir = fileService.topicDirectory(url, topicsDir, tp.topic());
+
+                FileStatus fileStatusWithMaxOffset = fileService.fileStatusWithMaxOffset(storage, new Path(topicDir), p -> {
+                  FileInfo fileInfo = fileService.getFileInfo(p.getName());
+                  return fileInfo != null && fileInfo.getTopic().equals(tp.topic()) && fileInfo.getPartition() == tp.partition();
+                });
+
                 if (fileStatusWithMaxOffset != null) {
                   currentSchema = schemaFileReader.getSchema(conf, fileStatusWithMaxOffset.getPath());
                 }
@@ -429,11 +437,15 @@ public class TopicPartitionWriter {
 
   private void readOffset() throws ConnectException {
     try {
-      String path = FileUtils.topicDirectory(url, topicsDir, tp.topic());
-      CommittedFileFilter filter = new TopicPartitionCommittedFileFilter(tp);
-      FileStatus fileStatusWithMaxOffset = FileUtils.fileStatusWithMaxOffset(storage, new Path(path), filter);
+      String path = fileService.topicDirectory(url, topicsDir, tp.topic());
+
+      FileStatus fileStatusWithMaxOffset = fileService.fileStatusWithMaxOffset(storage, new Path(path), p -> {
+        FileInfo fileInfo = fileService.getFileInfo(p.getName());
+        return fileInfo != null && fileInfo.getTopic().equals(tp.topic()) && fileInfo.getPartition() == tp.partition();
+      });
+
       if (fileStatusWithMaxOffset != null) {
-        offset = FileUtils.extractOffset(fileStatusWithMaxOffset.getPath().getName()) + 1;
+        offset = fileService.extractOffset(fileStatusWithMaxOffset.getPath().getName()) + 1;
       }
     } catch (IOException e) {
       throw new ConnectException(e);
@@ -473,7 +485,7 @@ public class TopicPartitionWriter {
       tempFile = tempFiles.get(encodedPartition);
     } else {
       String directory = HdfsSinkConnectorConstants.TEMPFILE_DIRECTORY + getDirectory(encodedPartition);
-      tempFile = FileUtils.tempFileName(url, topicsDir, directory, extension);
+      tempFile = fileService.tempFileName(url, topicsDir, directory, extension);
       tempFiles.put(encodedPartition, tempFile);
     }
     return tempFile;
@@ -533,6 +545,7 @@ public class TopicPartitionWriter {
     String encodedPartition = partitioner.encodePartition(record);
     RecordWriter<SinkRecord> writer = getWriter(record, encodedPartition);
     writer.write(record);
+    fileService.process(record, encodedPartition);
 
     if (!startOffsets.containsKey(encodedPartition)) {
       startOffsets.put(encodedPartition, record.kafkaOffset());
@@ -568,7 +581,7 @@ public class TopicPartitionWriter {
     long startOffset = startOffsets.get(encodedPartition);
     long endOffset = offsets.get(encodedPartition);
     String directory = getDirectory(encodedPartition);
-    String committedFile = FileUtils.committedFileName(url, topicsDir, directory, tp,
+    String committedFile = fileService.committedFileName(url, topicsDir, directory, tp,
                                                        startOffset, endOffset, extension,
                                                        zeroPadOffsetFormat);
     wal.append(tempFile, committedFile);
@@ -610,15 +623,16 @@ public class TopicPartitionWriter {
     long endOffset = offsets.get(encodedPartiton);
     String tempFile = tempFiles.get(encodedPartiton);
     String directory = getDirectory(encodedPartiton);
-    String committedFile = FileUtils.committedFileName(url, topicsDir, directory, tp,
+    String committedFile = fileService.committedFileName(url, topicsDir, directory, tp,
                                                        startOffset, endOffset, extension,
                                                        zeroPadOffsetFormat);
 
-    String directoryName = FileUtils.directoryName(url, topicsDir, directory);
+    String directoryName = fileService.directoryName(url, topicsDir, directory);
     if (!storage.exists(directoryName)) {
       storage.mkdirs(directoryName);
     }
     storage.commit(tempFile, committedFile);
+    fileService.reset(encodedPartiton);
     startOffsets.remove(encodedPartiton);
     offset = offset + recordCounter;
     recordCounter = 0;

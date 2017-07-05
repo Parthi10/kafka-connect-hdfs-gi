@@ -184,6 +184,11 @@ public class HdfsSinkConnectorConfig extends AbstractConfig {
       "io.confluent.connect.hdfs.partitioner.DefaultPartitioner";
   private static final String PARTITIONER_CLASS_DISPLAY = "Partitioner Class";
 
+  public static final String FILE_SERVICE_CLASS_CONFIG = "file.service.class";
+  public static final String FILE_SERVICE_CLASS_DEFAULT =
+          "io.confluent.connect.hdfs.file.DefaultFileService";
+  private static final String FILE_SERVICE_CLASS_DISPLAY = "FileService Class";
+
   public static final String PARTITION_FIELD_NAME_CONFIG = "partition.field.name";
   private static final String PARTITION_FIELD_NAME_DOC =
       "The name of the partitioning field when FieldPartitioner is used.";
@@ -306,6 +311,7 @@ public class HdfsSinkConnectorConfig extends AbstractConfig {
         .define(SHUTDOWN_TIMEOUT_CONFIG, Type.LONG, SHUTDOWN_TIMEOUT_DEFAULT, Importance.MEDIUM, SHUTDOWN_TIMEOUT_DOC, CONNECTOR_GROUP, 5, Width.SHORT, SHUTDOWN_TIMEOUT_DISPLAY)
         .define(PARTITIONER_CLASS_CONFIG, Type.STRING, PARTITIONER_CLASS_DEFAULT, Importance.HIGH, PARTITIONER_CLASS_DOC, CONNECTOR_GROUP, 6, Width.LONG, PARTITIONER_CLASS_DISPLAY,
                 Arrays.asList(PARTITION_FIELD_NAME_CONFIG, PARTITION_DURATION_MS_CONFIG, PATH_FORMAT_CONFIG, LOCALE_CONFIG, TIMEZONE_CONFIG))
+        .define(FILE_SERVICE_CLASS_CONFIG, Type.STRING, FILE_SERVICE_CLASS_DEFAULT, Importance.HIGH, "", CONNECTOR_GROUP, 6, Width.LONG, FILE_SERVICE_CLASS_DISPLAY)
         .define(PARTITION_FIELD_NAME_CONFIG, Type.STRING, PARTITION_FIELD_NAME_DEFAULT, Importance.MEDIUM, PARTITION_FIELD_NAME_DOC, CONNECTOR_GROUP, 7, Width.MEDIUM,
                 PARTITION_FIELD_NAME_DISPLAY, partitionerClassDependentsRecommender)
         .define(PARTITION_DURATION_MS_CONFIG, Type.LONG, PARTITION_DURATION_MS_DEFAULT, Importance.MEDIUM, PARTITION_DURATION_MS_DOC, CONNECTOR_GROUP, 8, Width.SHORT,
@@ -388,7 +394,9 @@ public class HdfsSinkConnectorConfig extends AbstractConfig {
             return name.equals(PARTITION_DURATION_MS_CONFIG) || name.equals(PATH_FORMAT_CONFIG) || name.equals(LOCALE_CONFIG) || name.equals(TIMEZONE_CONFIG);
           }
         } else {
-          throw new ConfigException("Not a valid partitioner class: " + partitionerName);
+          //throw new ConfigException("Not a valid partitioner class: " + partitionerName);
+          // Add ability to add custom partitioner
+          return false;
         }
       } catch (ClassNotFoundException e) {
         throw new ConfigException("Partitioner class not found: " + partitionerName);

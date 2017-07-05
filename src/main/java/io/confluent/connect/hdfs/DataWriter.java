@@ -14,6 +14,7 @@
 
 package io.confluent.connect.hdfs;
 
+import io.confluent.connect.hdfs.file.FileService;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
@@ -65,6 +66,7 @@ public class DataWriter {
   private Format format;
   private Set<TopicPartition> assignment;
   private Partitioner partitioner;
+  private FileService<SinkRecord> fileService;
   private RecordWriterProvider writerProvider;
   private SchemaFileReader schemaFileReader;
   private Map<TopicPartition, Long> offsets;
@@ -177,6 +179,8 @@ public class DataWriter {
 
       partitioner = createPartitioner(connectorConfig);
 
+      fileService = createFileService(connectorConfig);
+
       assignment = new HashSet<>(context.assignment());
       offsets = new HashMap<>();
 
@@ -192,7 +196,7 @@ public class DataWriter {
       topicPartitionWriters = new HashMap<>();
       for (TopicPartition tp: assignment) {
         TopicPartitionWriter topicPartitionWriter = new TopicPartitionWriter(
-            tp, storage, writerProvider, partitioner, connectorConfig, context, avroData, hiveMetaStore, hive, schemaFileReader, executorService,
+            tp, storage, writerProvider, partitioner, fileService, connectorConfig, context, avroData, hiveMetaStore, hive, schemaFileReader, executorService,
             hiveUpdateFutures);
         topicPartitionWriters.put(tp, topicPartitionWriter);
       }
@@ -273,7 +277,7 @@ public class DataWriter {
     assignment = new HashSet<>(partitions);
     for (TopicPartition tp: assignment) {
       TopicPartitionWriter topicPartitionWriter = new TopicPartitionWriter(
-          tp, storage, writerProvider, partitioner, connectorConfig, context, avroData,
+          tp, storage, writerProvider, partitioner, fileService, connectorConfig, context, avroData,
           hiveMetaStore, hive, schemaFileReader, executorService, hiveUpdateFutures);
       topicPartitionWriters.put(tp, topicPartitionWriter);
       // We need to immediately start recovery to ensure we pause consumption of messages for the
@@ -397,6 +401,13 @@ public class DataWriter {
     Partitioner partitioner = partitionerClasss.newInstance();
     partitioner.configure(map);
     return partitioner;
+  }
+
+  @SuppressWarnings("unchecked")
+  private FileService<SinkRecord> createFileService(HdfsSinkConnectorConfig config)
+          throws ClassNotFoundException, IllegalAccessException, InstantiationException {
+
+    return ((Class<FileService>) Class.forName(config.getString(HdfsSinkConnectorConfig.FILE_SERVICE_CLASS_CONFIG))).newInstance();
   }
 
   private Map<String, Object> copyConfig(HdfsSinkConnectorConfig config) {

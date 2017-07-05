@@ -50,8 +50,8 @@
     </scm>
 
     <properties>
-        <confluent.version>3.5.0-SNAPSHOT</confluent.version>
-        <kafka.version>0.11.1.0-SNAPSHOT</kafka.version>
+        <confluent.version>3.2.2</confluent.version>
+        <kafka.version>0.11.0.0</kafka.version>
         <junit.version>4.12</junit.version>
         <hadoop.version>2.7.3</hadoop.version>
         <hive.version>1.2.1</hive.version>
@@ -176,8 +176,8 @@
                 <version>2.5.1</version>
                 <inherited>true</inherited>
                 <configuration>
-                    <source>1.7</source>
-                    <target>1.7</target>
+                    <source>1.8</source>
+                    <target>1.8</target>
                     <compilerArguments>
                         <Xlint:all/>
                         <!-- bootstrap class path not set in conjunction with -source 1.7 -->

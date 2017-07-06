@@ -14,6 +14,7 @@
 
 package io.confluent.connect.hdfs.avro;
 
+import io.confluent.connect.hdfs.file.DefaultFileService;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.kafka.connect.data.Schema;
@@ -79,7 +80,7 @@ public class TopicPartitionWriterTest extends TestWithMiniDFSCluster {
     connectorProps.put(HdfsSinkConnectorConfig.FILENAME_OFFSET_ZERO_PAD_WIDTH_CONFIG, "2");
     configureConnector();
     TopicPartitionWriter topicPartitionWriter = new TopicPartitionWriter(
-        TOPIC_PARTITION, storage, writerProvider, partitioner,  connectorConfig, context, avroData);
+        TOPIC_PARTITION, storage, writerProvider, partitioner, new DefaultFileService(), connectorConfig, context, avroData);
 
     Schema schema = createSchema();
     List<Struct> records = createRecordBatches(schema, 3, 3);
@@ -116,7 +117,7 @@ public class TopicPartitionWriterTest extends TestWithMiniDFSCluster {
     String partitionField = (String) config.get(HdfsSinkConnectorConfig.PARTITION_FIELD_NAME_CONFIG);
 
     TopicPartitionWriter topicPartitionWriter = new TopicPartitionWriter(
-        TOPIC_PARTITION, storage, writerProvider, partitioner, connectorConfig, context, avroData);
+        TOPIC_PARTITION, storage, writerProvider, partitioner, new DefaultFileService(), connectorConfig, context, avroData);
 
     Schema schema = createSchema();
     List<Struct> records = new ArrayList<>();
@@ -158,7 +159,7 @@ public class TopicPartitionWriterTest extends TestWithMiniDFSCluster {
     partitioner.configure(config);
 
     TopicPartitionWriter topicPartitionWriter = new TopicPartitionWriter(
-        TOPIC_PARTITION, storage, writerProvider, partitioner, connectorConfig, context, avroData);
+        TOPIC_PARTITION, storage, writerProvider, partitioner, new DefaultFileService(), connectorConfig, context, avroData);
 
     Schema schema = createSchema();
     List<Struct> records = createRecordBatches(schema, 3, 3);

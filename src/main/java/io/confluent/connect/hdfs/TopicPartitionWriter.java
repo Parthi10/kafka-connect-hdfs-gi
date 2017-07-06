@@ -623,7 +623,7 @@ public class TopicPartitionWriter {
     String tempFile = tempFiles.get(encodedPartiton);
     String directory = getDirectory(encodedPartiton);
     String committedFile = fileService.committedFileName(url, topicsDir, directory, tp,
-                                                       startOffset, endOffset, extension, encodedPartiton, zeroPadOffsetFormat);
+                                                       startOffset, endOffset, encodedPartiton, extension, zeroPadOffsetFormat);
 
     String directoryName = fileService.directoryName(url, topicsDir, directory);
     if (!storage.exists(directoryName)) {

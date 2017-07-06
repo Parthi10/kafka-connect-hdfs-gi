@@ -582,8 +582,7 @@ public class TopicPartitionWriter {
     long endOffset = offsets.get(encodedPartition);
     String directory = getDirectory(encodedPartition);
     String committedFile = fileService.committedFileName(url, topicsDir, directory, tp,
-                                                       startOffset, endOffset, extension,
-                                                       zeroPadOffsetFormat);
+                                                       startOffset, endOffset, encodedPartition, extension, zeroPadOffsetFormat);
     wal.append(tempFile, committedFile);
     appended.add(tempFile);
   }
@@ -624,8 +623,7 @@ public class TopicPartitionWriter {
     String tempFile = tempFiles.get(encodedPartiton);
     String directory = getDirectory(encodedPartiton);
     String committedFile = fileService.committedFileName(url, topicsDir, directory, tp,
-                                                       startOffset, endOffset, extension,
-                                                       zeroPadOffsetFormat);
+                                                       startOffset, endOffset, extension, encodedPartiton, zeroPadOffsetFormat);
 
     String directoryName = fileService.directoryName(url, topicsDir, directory);
     if (!storage.exists(directoryName)) {

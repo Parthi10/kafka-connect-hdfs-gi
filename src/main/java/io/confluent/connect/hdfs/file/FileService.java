@@ -19,7 +19,7 @@ public interface FileService<T> {
 
     String tempFileName(String url, String topicsDir, String directory, String extension);
 
-    String committedFileName(String url, String topicsDir, String directory, TopicPartition topicPart, long startOffset, long endOffset, String extension, String zeroPadFormat);
+    String committedFileName(String url, String topicsDir, String directory, TopicPartition topicPart, long startOffset, long endOffset, String encodedPartition, String extension, String zeroPadFormat);
 
     String topicDirectory(String url, String topicsDir, String topic);
 

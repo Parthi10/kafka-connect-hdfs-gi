@@ -36,7 +36,7 @@ public class DefaultFileService implements FileService<SinkRecord> {
     }
 
     @Override
-    public String committedFileName(String url, String topicsDir, String directory, TopicPartition topicPart, long startOffset, long endOffset, String extension, String zeroPadFormat) {
+    public String committedFileName(String url, String topicsDir, String directory, TopicPartition topicPart, long startOffset, long endOffset, String encodedPartition, String extension, String zeroPadFormat) {
         return FileUtils.committedFileName(url, topicsDir, directory, topicPart, startOffset, endOffset, extension, zeroPadFormat);
     }
 

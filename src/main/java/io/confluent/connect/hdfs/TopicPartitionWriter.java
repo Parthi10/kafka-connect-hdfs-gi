@@ -107,11 +107,10 @@ public class TopicPartitionWriter {
       Storage storage,
       RecordWriterProvider writerProvider,
       Partitioner partitioner,
-      FileService<SinkRecord> fileService,
       HdfsSinkConnectorConfig connectorConfig,
       SinkTaskContext context,
       AvroData avroData) {
-    this(tp, storage, writerProvider, partitioner, fileService, connectorConfig, context, avroData, null, null, null, null, null);
+    this(tp, storage, writerProvider, partitioner, connectorConfig, context, avroData, null, null, null, null, null);
   }
 
   public TopicPartitionWriter(
@@ -119,7 +118,6 @@ public class TopicPartitionWriter {
       Storage storage,
       RecordWriterProvider writerProvider,
       Partitioner partitioner,
-      FileService<SinkRecord> fileService,
       HdfsSinkConnectorConfig connectorConfig,
       SinkTaskContext context,
       AvroData avroData,
@@ -135,7 +133,7 @@ public class TopicPartitionWriter {
     this.storage = storage;
     this.writerProvider = writerProvider;
     this.partitioner = partitioner;
-    this.fileService = fileService;
+    this.fileService = writerProvider.getFileService();
     this.url = storage.url();
     this.conf = storage.conf();
     this.schemaFileReader = schemaFileReader;

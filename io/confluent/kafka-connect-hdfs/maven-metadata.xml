@@ -3,9 +3,10 @@
   <groupId>io.confluent</groupId>
   <artifactId>kafka-connect-hdfs</artifactId>
   <versioning>
+    <release>3.5.0-gi</release>
     <versions>
-      <version>3.5.0-SNAPSHOT</version>
+      <version>3.5.0-gi</version>
     </versions>
-    <lastUpdated>20170707082442</lastUpdated>
+    <lastUpdated>20170711100953</lastUpdated>
   </versioning>
 </metadata>
